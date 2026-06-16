@@ -1,5 +1,5 @@
 import streamlit as st
-from cards import load_cards, save_card, delete_card_by_question
+from cards import load_cards, save_card, delete_card_by_question, delete_card_by_index
 import json
 import requests
 from groq import Groq
@@ -457,14 +457,11 @@ with tab6:
             st.write("Source:", card.get("source", ""))
             st.write("Tags:", ", ".join(card.get("tags", [])))
 
-            if card.get("source") == "Default":
-                st.info("Default starter cards cannot be deleted.")
-            else:
-                if st.button("Delete Card", key=f"delete_card_{i}"):
-                    deleted = delete_card_by_question(card.get("question", ""))
-                    if deleted:
-                        st.success("Card deleted.")
-                        st.experimental_rerun()
-                    else:
-                        st.warning("Could not delete card.")
+            if st.button("Delete Card", key=f"delete_card_{i}"):
+                deleted = delete_card_by_index(i)
+                if deleted:
+                    st.success("Card deleted.")
+                    st.rerun()
+                else:
+                    st.warning("Could not delete card.")
 

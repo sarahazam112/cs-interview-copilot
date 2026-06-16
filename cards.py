@@ -99,3 +99,24 @@ def delete_card_by_question(question):
     _write_cards(new_cards)
 
     return True
+
+def delete_card_by_index(index):
+    """
+    Remove a card by its index in the cards list.
+    Returns True if a card was removed, False otherwise.
+    """
+    try:
+        with open(CARDS_FILE, "r") as f:
+            cards = json.load(f)
+            if not isinstance(cards, list):
+                cards = []
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        cards = []
+
+    if index < 0 or index >= len(cards):
+        return False
+
+    cards.pop(index)
+    _write_cards(cards)
+
+    return True
