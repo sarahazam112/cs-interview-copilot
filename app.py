@@ -9,6 +9,13 @@ from difflib import SequenceMatcher
 
 load_dotenv()
 
+def rerun():
+    """Compatibility wrapper for st.rerun() / st.experimental_rerun()"""
+    if hasattr(st, 'rerun'):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
 client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
@@ -182,7 +189,7 @@ with tab1:
     if st.button("Next Card"):
         st.session_state.card_index += 1
         st.session_state.show_answer = False
-        st.rerun()
+        rerun()
 
 with tab2:
     st.subheader("Progress Tracking")
@@ -461,7 +468,7 @@ with tab6:
                 deleted = delete_card_by_index(i)
                 if deleted:
                     st.success("Card deleted.")
-                    st.rerun()
+                    rerun()
                 else:
                     st.warning("Could not delete card.")
 
