@@ -1,29 +1,5 @@
 [
     {
-        "question": "What is the time complexity of Binary Search?",
-        "answer": "O(log n)",
-        "category": "Algorithms",
-        "difficulty": "Easy",
-        "source": "AI Generated",
-        "tags": [
-            "searching",
-            "binary search",
-            "time complexity"
-        ]
-    },
-    {
-        "question": "Which sorting algorithm has an average time complexity of O(n log n)?",
-        "answer": "Merge Sort",
-        "category": "Algorithms",
-        "difficulty": "Easy",
-        "source": "AI Generated",
-        "tags": [
-            "sorting",
-            "merge sort",
-            "time complexity"
-        ]
-    },
-    {
         "question": "What is the purpose of the 'key' function in Python's built-in sort() method?",
         "answer": "To specify a function of one argument that is used to extract a comparison key from each element in the list",
         "category": "Algorithms",
@@ -113,6 +89,16 @@
         "tags": [
             "binary tree",
             "symmetry"
+        ]
+    },
+    {
+        "question": "What is Big-O notation?",
+        "answer": "Big-O describes how an algorithm's time or space grows as input size increases.",
+        "category": "Algorithms",
+        "difficulty": "Easy",
+        "source": "Default",
+        "tags": [
+            "complexity"
         ]
     }
 ]

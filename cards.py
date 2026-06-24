@@ -4,16 +4,7 @@ import tempfile
 
 CARDS_FILE = os.path.join(os.path.dirname(__file__), "cards.json")
 
-DEFAULT_CARDS = [
-    {
-        "question": "What is Big-O notation?",
-        "answer": "Big-O describes how an algorithm's time or space grows as input size increases.",
-        "category": "Algorithms",
-        "difficulty": "Easy",
-        "source": "Default",
-        "tags": ["complexity"]
-    }
-]
+DEFAULT_CARDS = []
 
 def load_cards():
     try:
@@ -26,16 +17,6 @@ def load_cards():
             cards = []
     except (json.JSONDecodeError, OSError):
         cards = []
-
-    # Ensure default cards are present in the stored file so built-in
-    # cards can be deleted by writing them into `cards.json` on first load.
-    default_questions = {d.get("question", "").strip() for d in DEFAULT_CARDS}
-    existing_questions = {c.get("question", "").strip() for c in cards if isinstance(c, dict)}
-
-    if not default_questions.intersection(existing_questions):
-        # No default found in file: append defaults and persist.
-        cards = cards + [d.copy() for d in DEFAULT_CARDS]
-        _write_cards(cards)
 
     return cards
 

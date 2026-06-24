@@ -38,6 +38,38 @@ def generate_ai_response(prompt):
 
 
 FLASHCARDS = load_cards()
+
+def get_next_card_index(filtered_cards, current_index, card_ratings):
+    """Select next card with spaced repetition: harder cards appear more frequently."""
+    if not filtered_cards:
+        return 0
+    
+    if current_index >= len(filtered_cards):
+        current_index = 0
+    
+    card = filtered_cards[current_index]
+    question = card.get("question", "")
+    
+    rating = None
+    for r in reversed(card_ratings):
+        if r.get("question") == question:
+            rating = r.get("rating")
+            break
+    
+    if rating is None:
+        return (current_index + 1) % len(filtered_cards)
+    
+    repeat_counts = {
+        "Easy": 5,
+        "Hard": 1,
+        "Again": 1,
+        "Good": 2
+    }
+    
+    repeat_factor = repeat_counts.get(rating, 2)
+    advance = max(1, len(filtered_cards) // repeat_factor)
+    return (current_index + advance) % len(filtered_cards)
+
 def fetch_github_file(url):
     if "github.com" in url and "/blob/" in url:
         url = url.replace("github.com", "raw.githubusercontent.com")
@@ -104,17 +136,59 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("CS Interview Copilot")
-
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+PAGES = [
     "Flashcards",
     "Progress Tracking",
     "Create Card",
     "AI Generate Cards",
     "Weak Cards",
     "Card Library"
-])
-with tab1:
+]
+
+if "nav_page" not in st.session_state:
+    st.session_state["nav_page"] = PAGES[0]
+if "sidebar_nav_page" not in st.session_state:
+    st.session_state["sidebar_nav_page"] = st.session_state["nav_page"]
+if "top_nav_page" not in st.session_state:
+    st.session_state["top_nav_page"] = st.session_state["nav_page"]
+
+
+def sync_from_sidebar():
+    st.session_state["nav_page"] = st.session_state["sidebar_nav_page"]
+    st.session_state["top_nav_page"] = st.session_state["nav_page"]
+
+
+def sync_from_top():
+    st.session_state["nav_page"] = st.session_state["top_nav_page"]
+    st.session_state["sidebar_nav_page"] = st.session_state["nav_page"]
+
+
+st.session_state["sidebar_nav_page"] = st.session_state["nav_page"]
+st.session_state["top_nav_page"] = st.session_state["nav_page"]
+
+st.sidebar.title("Navigation")
+st.sidebar.radio(
+    "Go to",
+    PAGES,
+    key="sidebar_nav_page",
+    on_change=sync_from_sidebar
+)
+
+st.title("CS Interview Copilot")
+
+st.markdown("### Quick Navigation")
+st.radio(
+    "Choose a page",
+    PAGES,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="top_nav_page",
+    on_change=sync_from_top
+)
+
+page = st.session_state["nav_page"]
+
+if page == "Flashcards":
     categories = sorted(set(card["category"] for card in FLASHCARDS))
 
     selected_category = st.selectbox(
@@ -127,82 +201,93 @@ with tab1:
         if card["category"] == selected_category
     ]
 
-    if "card_index" not in st.session_state:
-        st.session_state.card_index = 0
+    if not filtered_cards:
+        st.info("No cards in this category. Create or generate some cards to get started!")
+    else:
+        if "card_index" not in st.session_state:
+            st.session_state.card_index = 0
 
-    if "ratings" not in st.session_state:
-        st.session_state.ratings = []
+        if "card_ratings" not in st.session_state:
+            st.session_state.card_ratings = []
 
-    card = filtered_cards[st.session_state.card_index % len(filtered_cards)]
+        card = filtered_cards[st.session_state.card_index % len(filtered_cards)]
 
-    st.caption(f"{card['category']} · {card['difficulty']}")
+        st.caption(f"{card['category']} · {card['difficulty']}")
 
-    st.markdown(f"## {card['question']}")
+        st.markdown(f"## {card['question']}")
 
-    if st.button("Reveal Answer"):
-        st.session_state.show_answer = True
+        if st.button("Reveal Answer"):
+            st.session_state.show_answer = True
 
-    if st.session_state.get("show_answer", False):
-        st.markdown("### Answer")
-        st.write(card["answer"])
+        if st.session_state.get("show_answer", False):
+            st.markdown("### Answer")
+            st.write(card["answer"])
 
-        st.divider()
+            st.divider()
 
-        col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3, col4 = st.columns(4)
 
-        def save_rating(card, rating):
-            if "card_ratings" not in st.session_state:
-                st.session_state.card_ratings = []
+            def save_rating(card, rating):
+                if "card_ratings" not in st.session_state:
+                    st.session_state.card_ratings = []
 
-            st.session_state.card_ratings.append({
-                "question": card["question"],
-                "answer": card["answer"],
-                "category": card["category"],
-                "difficulty": card["difficulty"],
-                "rating": rating
-            })
+                st.session_state.card_ratings.append({
+                    "question": card["question"],
+                    "answer": card["answer"],
+                    "category": card["category"],
+                    "difficulty": card["difficulty"],
+                    "rating": rating
+                })
 
-        with col1:
-            if st.button("Again"):
-                save_rating(card, "Again")
+            with col1:
+                if st.button("Again"):
+                    save_rating(card, "Again")
 
-        with col2:
-            if st.button("Hard"):
-                save_rating(card, "Hard")
+            with col2:
+                if st.button("Hard"):
+                    save_rating(card, "Hard")
 
-        with col3:
-            if st.button("Good"):
-                save_rating(card, "Good")
+            with col3:
+                if st.button("Good"):
+                    save_rating(card, "Good")
 
-        with col4:
-            if st.button("Easy"):
-                save_rating(card, "Easy")
+            with col4:
+                if st.button("Easy"):
+                    save_rating(card, "Easy")
 
-        st.divider()
+            st.divider()
 
-        st.subheader("Ask AI About This Question")
+            col_next, _ = st.columns([1, 3])
+            with col_next:
+                if st.button("Next Card", use_container_width=True):
+                    st.session_state.card_index = get_next_card_index(
+                        filtered_cards,
+                        st.session_state.card_index,
+                        st.session_state.card_ratings
+                    )
+                    st.session_state.show_answer = False
+                    rerun()
 
-        st.text_input(
-            "Ask for clarification, examples, or a simpler explanation..."
-        )
+            st.subheader("Ask AI About This Question")
 
-    if st.button("Next Card"):
-        st.session_state.card_index += 1
-        st.session_state.show_answer = False
-        rerun()
+            st.text_input(
+                "Ask for clarification, examples, or a simpler explanation..."
+            )
 
-with tab2:
+if page == "Progress Tracking":
     st.subheader("Progress Tracking")
 
-    if "ratings" not in st.session_state or len(st.session_state.ratings) == 0:
-        st.info("No cards rated yet.")
+    card_ratings = st.session_state.get("card_ratings", [])
+    
+    if not card_ratings or len(card_ratings) == 0:
+        st.info("No cards rated yet. Start reviewing cards to see your progress!")
     else:
-        total_reviewed = len(st.session_state.ratings)
+        total_reviewed = len(card_ratings)
 
-        again_count = st.session_state.ratings.count("Again")
-        hard_count = st.session_state.ratings.count("Hard")
-        good_count = st.session_state.ratings.count("Good")
-        easy_count = st.session_state.ratings.count("Easy")
+        again_count = sum(1 for r in card_ratings if r.get("rating") == "Again")
+        hard_count = sum(1 for r in card_ratings if r.get("rating") == "Hard")
+        good_count = sum(1 for r in card_ratings if r.get("rating") == "Good")
+        easy_count = sum(1 for r in card_ratings if r.get("rating") == "Easy")
 
         col1, col2, col3, col4 = st.columns(4)
 
@@ -213,9 +298,13 @@ with tab2:
             st.metric("Again", again_count)
 
         with col3:
-            st.metric("Good", good_count)
+            st.metric("Hard", hard_count)
 
         with col4:
+            st.metric("Good", good_count)
+
+        col5, _ = st.columns([1, 3])
+        with col5:
             st.metric("Easy", easy_count)
 
         st.subheader("Rating Breakdown")
@@ -228,7 +317,7 @@ with tab2:
                 "Easy": easy_count
             }
         })
-with tab3:
+if page == "Create Card":
     st.subheader("Create Your Own Card")
 
     new_question = st.text_area("Question")
@@ -291,7 +380,7 @@ with tab3:
                 save_card(card)
                 st.success("Card saved. Refresh the app to see it in your deck.")
 
-with tab4:
+if page == "AI Generate Cards":
     st.subheader("AI Generate Cards")
 
     ai_category = st.selectbox(
@@ -385,7 +474,7 @@ Use source: "AI Generated".
 
         except json.JSONDecodeError:
             st.error("AI did not return valid JSON. Try again.")
-with tab5:
+if page == "Weak Cards":
     st.subheader("Weak Cards Review")
 
     weak_cards = [
@@ -442,7 +531,7 @@ def is_similar(question1, question2, threshold=0.8):
         question2.lower()
     ).ratio()
     return similarity >= threshold
-with tab6:
+if page == "Card Library":
     st.subheader("Card Library")
 
     all_cards = load_cards()
@@ -471,4 +560,3 @@ with tab6:
                     rerun()
                 else:
                     st.warning("Could not delete card.")
-
